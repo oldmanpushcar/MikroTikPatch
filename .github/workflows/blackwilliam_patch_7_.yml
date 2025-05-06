@@ -545,22 +545,22 @@ jobs:
         sudo rm chr-$LATEST_VERSION$ARCH.vdi
         sudo rm chr-$LATEST_VERSION$ARCH.img
 
-    - name: Upload Files
-      if: steps.prepare_envs.outputs.IS_LATEST == 'true'
-      run: |
-        sudo mkdir -p ./routeros/$LATEST_VERSION
-        if [ "${{ inputs.latest }}" != "false" ];then
-          echo $LATEST_VERSION $BUILD_TIME | sudo tee ./routeros/NEWESTa7.${{ matrix.channel }}
-        fi
-        sudo cp translation-${{ env.LATEST_VERSION }}-${{ matrix.channel }} ./routeros/$LATEST_VERSION/CHANGELOG
-        sudo cp ./all_packages/*.npk ./routeros/$LATEST_VERSION/
-        sudo chown -R root:root ./routeros/
-        sudo apt-get install -y lftp > /dev/null 2>&1
-        sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
-        set sftp:auto-confirm yes
-        mirror --reverse --verbose --only-newer ./routeros ${{ secrets.SSH_DIRECTORY }}
-        bye
-        EOF
+    # - name: Upload Files
+    #   if: steps.prepare_envs.outputs.IS_LATEST == 'true'
+    #   run: |
+    #     sudo mkdir -p ./routeros/$LATEST_VERSION
+    #     if [ "${{ inputs.latest }}" != "false" ];then
+    #       echo $LATEST_VERSION $BUILD_TIME | sudo tee ./routeros/NEWESTa7.${{ matrix.channel }}
+    #     fi
+    #     sudo cp translation-${{ env.LATEST_VERSION }}-${{ matrix.channel }} ./routeros/$LATEST_VERSION/CHANGELOG
+    #     sudo cp ./all_packages/*.npk ./routeros/$LATEST_VERSION/
+    #     sudo chown -R root:root ./routeros/
+    #     sudo apt-get install -y lftp > /dev/null 2>&1
+    #     sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
+    #     set sftp:auto-confirm yes
+    #     mirror --reverse --verbose --only-newer ./routeros ${{ secrets.SSH_DIRECTORY }}
+    #     bye
+    #     EOF
 
     - name: Clear Cloudflare cache
       if: steps.prepare_envs.outputs.IS_LATEST == 'true'
