@@ -474,76 +474,7 @@ jobs:
           sudo rm chr.img.zip
           sudo mv chr-$LATEST_VERSION$ARCH.img chr.img
 
-    - name: Create chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
-      if: steps.prepare_envs.outputs.IS_LATEST == 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
-      run: |
-        sudo modprobe nbd
-        sudo apt-get install -y qemu-utils extlinux > /dev/null
-        truncate --size 128M chr-$LATEST_VERSION$ARCH.img
-        sgdisk --clear --set-alignment=2 \
-            --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
-            --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" \
-            --gpttombr=1:2 \
-            chr-$LATEST_VERSION$ARCH.img
-        dd if=chr-$LATEST_VERSION$ARCH.img of=pt.bin bs=1 count=66 skip=446
-        echo -e "\x80" | dd of=pt.bin  bs=1 count=1  conv=notrunc
-        sgdisk --mbrtogpt --clear --set-alignment=2 \
-            --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
-            --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" \
-            chr-$LATEST_VERSION$ARCH.img
-        dd if=mbr.bin of=chr-$LATEST_VERSION$ARCH.img  bs=1 count=446 conv=notrunc
-        dd if=pt.bin of=chr-$LATEST_VERSION$ARCH.img  bs=1 count=66 seek=446 conv=notrunc
-        sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION$ARCH.img
-        sudo mkfs.vfat -n "Boot" /dev/nbd0p1
-        sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd0p2
-        sudo mkdir -p ./img/{boot,routeros}
-        sudo mount /dev/nbd0p1 ./img/boot/
-        if [ "${{ matrix.arch }}" == "x86" ]; then
-          sudo mkdir -p  ./img/boot/{BOOT,EFI/BOOT}
-          sudo cp BOOTX64.EFI ./img/boot/EFI/BOOT/BOOTX64.EFI
-          sudo extlinux --install  -H 64 -S 32 ./img/boot/BOOT
-          echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > syslinux.cfg
-          sudo cp syslinux.cfg ./img/boot/BOOT/
-          sudo rm syslinux.cfg
-        elif [ "${{ matrix.arch }}" == "arm64" ]; then
-          sudo qemu-nbd -c /dev/nbd1 -f raw chr.img
-          sudo mkdir -p ./chr/boot
-          sudo mount /dev/nbd1p1 ./chr/boot/
-          sudo -E python3 patch.py kernel ./chr/boot/EFI/BOOT/BOOTAA64.EFI -O ./BOOTAA64.EFI 
-          sudo mkdir -p  ./img/boot/EFI/BOOT
-          sudo cp ./BOOTAA64.EFI ./img/boot/EFI/BOOT/BOOTAA64.EFI
-          sudo umount /dev/nbd1p1
-          sudo rm -rf ./chr
-          sudo qemu-nbd -d /dev/nbd1
-        fi
-        sudo umount /dev/nbd0p1
-        sudo mount  /dev/nbd0p2 ./img/routeros/
-        sudo mkdir -p ./img/routeros/{var/pdb/{system,option},boot,rw}
-        sudo cp ./all_packages/option-$LATEST_VERSION$ARCH.npk ./img/routeros/var/pdb/option/image
-        sudo cp ./all_packages/routeros-$LATEST_VERSION$ARCH.npk ./img/routeros/var/pdb/system/image
-        sudo umount /dev/nbd0p2
-        sudo rm -rf ./img
-        sudo qemu-nbd -d /dev/nbd0
 
-        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.qcow2
-        sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vmdk
-        sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vhd
-        sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vhdx
-        sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vdi
-
-        sudo zip chr-$LATEST_VERSION$ARCH.qcow2.zip chr-$LATEST_VERSION$ARCH.qcow2
-        sudo zip chr-$LATEST_VERSION$ARCH.vmdk.zip chr-$LATEST_VERSION$ARCH.vmdk
-        sudo zip chr-$LATEST_VERSION$ARCH.vhd.zip chr-$LATEST_VERSION$ARCH.vhd
-        sudo zip chr-$LATEST_VERSION$ARCH.vhdx.zip chr-$LATEST_VERSION$ARCH.vhdx
-        sudo zip chr-$LATEST_VERSION$ARCH.vdi.zip chr-$LATEST_VERSION$ARCH.vdi
-        sudo zip chr-$LATEST_VERSION$ARCH.img.zip chr-$LATEST_VERSION$ARCH.img
-
-        sudo rm chr-$LATEST_VERSION$ARCH.qcow2
-        sudo rm chr-$LATEST_VERSION$ARCH.vmdk
-        sudo rm chr-$LATEST_VERSION$ARCH.vhd
-        sudo rm chr-$LATEST_VERSION$ARCH.vhdx
-        sudo rm chr-$LATEST_VERSION$ARCH.vdi
-        sudo rm chr-$LATEST_VERSION$ARCH.img
 
     # - name: Upload Files
     #   if: steps.prepare_envs.outputs.IS_LATEST == 'true'
