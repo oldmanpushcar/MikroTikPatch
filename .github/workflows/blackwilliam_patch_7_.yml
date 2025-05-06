@@ -1,9 +1,9 @@
 name: blackwilliam Patch Mikrotik RouterOS 7.x
 on:
-  push:
-    branches: [ "blackwilliam" ]
-  schedule:
-    - cron: "0 0 * * *"
+  # push:
+  #   branches: [ "blackwilliam" ]
+  # schedule:
+  #   - cron: "0 0 * * *"
   workflow_dispatch:
     inputs:
       latest:
